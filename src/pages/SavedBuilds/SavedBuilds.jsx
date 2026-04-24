@@ -15,11 +15,8 @@ export default function SavedBuilds() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!session?.user) {
-            setLoadingBuilds(false);
-            return;
-        }
-        setLoadingBuilds(true);
+        if (!session?.user) return;
+
         getUserBuilds(session.user.id)
             .then(setSavedBuilds)
             .catch(console.error)
