@@ -65,6 +65,7 @@ function formatPartSpecs(part, slotKey) {
 export default function CustomBuild() {
     const location = useLocation();
     const editBuild = location.state?.editBuild || null;
+    // console.log(editBuild);
 
     const [selectedParts, setSelectedParts] = useState(() => {
         return editBuild 
@@ -76,7 +77,7 @@ export default function CustomBuild() {
     const editId = editBuild ? editBuild.id : null;
     const generatedBudget = editBuild?.generatedBudget ?? null;
 
-    const { session } = useContext(AuthContext);
+    const { session } = useContext(AuthContext) || {};
 
     const [pickerOpen, setPickerOpen] = useState(null);
     const [availableParts, setAvailableParts] = useState([]);
@@ -86,6 +87,14 @@ export default function CustomBuild() {
     const [ignoreCompatibility, setIgnoreCompatibility] = useState(false);
     
     const navigate = useNavigate();
+
+    function generateCompatiblity(parts = null) {
+        const _selectedParts = parts ?? selectedParts;
+        for (const [slotKey, selected] of Object.entries(_selectedParts)) {
+            _selectedParts[slotKey] = measurePartCompatibility(selected.part, _selectedParts);
+        }
+        return _selectedParts;
+    }
 
     function reinitializeParts(parts) {
         const result = {};
@@ -102,7 +111,8 @@ export default function CustomBuild() {
                 part: partReformatted
             };
         }
-        return result;
+        const withCompatibility = generateCompatiblity(result);
+        return withCompatibility;
     }
 
     const fetchParts = async (slot, ignoreCompatibility) => {
@@ -149,16 +159,12 @@ export default function CustomBuild() {
         } else {
             delete newSelectedParts[slotKey];
         }
-
-        // Refresh compatibility issues
-        for (const [slotKey, selected] of Object.entries(newSelectedParts)) {
-            newSelectedParts[slotKey] = measurePartCompatibility(selected.part, newSelectedParts)
-        }
+        newSelectedParts = generateCompatiblity(newSelectedParts);
 
         setSelectedParts(newSelectedParts);
         setPickerOpen(null);
     };
-    console.log(selectedParts);
+    // console.log(selectedParts);
 
     const totalPrice = Object.values(selectedParts).reduce((sum, selected) => sum + (selected.part.price || 0), 0);
     const partsCount = Object.keys(selectedParts).length;
@@ -268,7 +274,7 @@ export default function CustomBuild() {
                                 {selected && !selected?.compatible &&
                                     <p>
                                         {
-                                        selected?.issues?.filter(issue => issue.severity == 'error')?.length > 0
+                                        selected?.issues?.filter(issue => issue.severity === 'error')?.length > 0
                                             ? <span>This part has severe compatibility errors</span>
                                             : <span>This part may not be compatible</span>
                                         }
@@ -458,7 +464,7 @@ export default function CustomBuild() {
                                         </div>
                                         <div className="picker-item-compatibility">
                                             <PartIssue
-                                                issues={available.issues}
+                                                issues={available?.issues}
                                             />
                                         </div>
                                         <div className="picker-item-price">
