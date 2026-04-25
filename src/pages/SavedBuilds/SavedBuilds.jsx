@@ -9,21 +9,25 @@ import "./SavedBuilds.css";
 export default function SavedBuilds() {
     const { session } = useContext(AuthContext);
     const [savedBuilds, setSavedBuilds] = useState([]);
-    const [loadingBuilds, setLoadingBuilds] = useState(true);
+    const [loadingBuilds, setLoadingBuilds] = useState(() => !!session?.user);
     const [viewingBuild, setViewingBuild] = useState(null);
 
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!session?.user) {
-            setLoadingBuilds(false);
-            return;
-        }
-        setLoadingBuilds(true);
-        getUserBuilds(session.user.id)
-            .then(setSavedBuilds)
-            .catch(console.error)
-            .finally(() => setLoadingBuilds(false));
+        if (!session?.user) return;
+        const load = async () => {
+            setLoadingBuilds(true);
+            try {
+                const builds = await getUserBuilds(session.user.id);
+                setSavedBuilds(builds);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoadingBuilds(false);
+            }
+        };
+        load();
     }, [session]);
 
     useEffect(() => {

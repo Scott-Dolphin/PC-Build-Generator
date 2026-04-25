@@ -105,7 +105,7 @@ export default function CustomBuild() {
         return result;
     }
 
-    const fetchParts = async (slot, ignoreCompatibility) => {
+    const fetchParts = useCallback(async (slot, ignoreCompatibility) => {
         setLoading(true);
         setAvailableParts([]);
         try {
@@ -123,7 +123,7 @@ export default function CustomBuild() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedParts]);
 
     // Re-fetch parts when changing compatibility preference
     const handleCheckboxChange = async () => {
@@ -138,8 +138,8 @@ export default function CustomBuild() {
     // Fetch parts when picker opens
     const openPicker = useCallback(async (slot) => {
         setPickerOpen(slot.key);
-        await fetchParts(slot, ignoreCompatibility);        
-    }, [selectedParts, ignoreCompatibility]);
+        await fetchParts(slot, ignoreCompatibility);
+    }, [ignoreCompatibility, fetchParts]);
 
     const selectPart = (slotKey, part) => {
 
