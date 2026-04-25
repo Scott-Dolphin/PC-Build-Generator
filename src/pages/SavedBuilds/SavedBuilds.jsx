@@ -7,7 +7,7 @@ import { getUserBuilds, deleteBuild } from "../../lib/buildsApi";
 import "./SavedBuilds.css";
 
 export default function SavedBuilds() {
-    const { session } = useContext(AuthContext);
+    const { session } = useContext(AuthContext) || {};
     const [savedBuilds, setSavedBuilds] = useState([]);
     const [loadingBuilds, setLoadingBuilds] = useState(true);
     const [viewingBuild, setViewingBuild] = useState(null);

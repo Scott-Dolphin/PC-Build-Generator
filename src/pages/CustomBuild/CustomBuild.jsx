@@ -77,7 +77,7 @@ export default function CustomBuild() {
     const editId = editBuild ? editBuild.id : null;
     const generatedBudget = editBuild?.generatedBudget ?? null;
 
-    const { session } = useContext(AuthContext);
+    const { session } = useContext(AuthContext) || {};
 
     const [pickerOpen, setPickerOpen] = useState(null);
     const [availableParts, setAvailableParts] = useState([]);
