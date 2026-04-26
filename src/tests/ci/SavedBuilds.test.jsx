@@ -1,16 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import SavedBuilds from '../pages/SavedBuilds/SavedBuilds.jsx';
-import { AuthContext } from '../context/AuthContext.js';
+import SavedBuilds from '../../pages/SavedBuilds/SavedBuilds.jsx';
+import { AuthContext } from '../../context/AuthContext.js';
 
 const mockNavigate = vi.fn();
 
-vi.mock("../lib/buildsApi", () => ({
+vi.mock("../../lib/buildsApi", () => ({
     getUserBuilds: vi.fn(),
     deleteBuild: vi.fn()
 }));
-import { getUserBuilds } from '../lib/buildsApi.js';
+import { getUserBuilds } from '../../lib/buildsApi.js';
 import userEvent from '@testing-library/user-event';
 
 const mockSession = {
