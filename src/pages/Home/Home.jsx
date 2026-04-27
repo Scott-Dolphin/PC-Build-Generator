@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom"
 
 import "./Home.css"
-
 const pcVideo = "/assets/pc.mp4";
 
 export default function Home() {

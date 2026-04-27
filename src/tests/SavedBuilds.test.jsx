@@ -6,6 +6,17 @@ import SavedBuilds from '../pages/SavedBuilds/SavedBuilds.jsx';
 
 const mockNavigate = vi.fn();
 
+vi.mock("../lib/buildsApi", () => ({
+    getUserBuilds: vi.fn(),
+    deleteBuild: vi.fn()
+}));
+
+import { getUserBuilds, deleteBuild } from '../lib/buildsApi';
+
+const mockSession = {
+    user: { id: "11948775-23ab-416f-ad09-76f62ecec1f2" }
+};
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return { ...actual, useNavigate: () => mockNavigate };
@@ -15,10 +26,6 @@ vi.mock('../lib/buildsApi', () => ({
     getUserBuilds: vi.fn(),
     deleteBuild: vi.fn(),
 }));
-
-import { getUserBuilds, deleteBuild } from '../lib/buildsApi';
-
-const mockSession = { user: { id: 'user-123' } };
 
 function renderWithAuth(session = null) {
     return render(
@@ -78,6 +85,7 @@ describe('SavedBuilds Component', () => {
         await waitFor(() => expect(screen.getByText('Build To Delete')).toBeDefined());
         fireEvent.click(screen.getByText('Delete'));
 
+        vi.spyOn(window, "confirm").mockReturnValue(true);
         expect(window.confirm).toHaveBeenCalledWith("Are you sure you want to delete this build?");
         await waitFor(() => expect(screen.queryByText('Build To Delete')).toBeNull());
     });
