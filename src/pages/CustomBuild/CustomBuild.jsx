@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { findParts } from "../../domain/partsApi";
 import { partMap } from "../../domain/partMap";
 import { measurePartCompatibility } from "../../domain/partsApi";
+import { AuthContext } from "../../context/AuthContext";
+import { saveBuild } from "../../lib/buildsApi";
 
 import { COMPONENT_SLOTS } from "../../utils/componentSlots";
 import PartIssue from "../../components/PartIssue/PartIssue";
@@ -68,19 +70,49 @@ export default function CustomBuild() {
         return editBuild 
             ? reinitializeParts(editBuild.parts) 
             : {}
-    });    
+    });  
+    
+    const [ compatPercent, setCompatPercent ] = useState(0);
+
+    // Calculate compatibility percentage: parts w/out errors (can have warnings) / total
+    useEffect(() => {
+        const compatibleParts = Object.values(selectedParts).filter(part =>
+            part.compatible || part.issues.filter(issue => issue.severity == "error").length == 0
+        );
+        const totalParts = Object.values(selectedParts).length;
+        const compatibilityPercentage = Number.isNaN(compatibleParts.length / totalParts)
+                ? 0
+                : compatibleParts.length / totalParts;
+        setCompatPercent(compatibilityPercentage);
+        
+        const compatibilityWheel = document.querySelector(".compatibility-wheel");
+        if (compatibilityWheel) {
+            compatibilityWheel.style.setProperty("--angle", `${compatibilityPercentage*360}deg`);
+        }
+    }, [selectedParts]);
+
     const [buildName, setBuildName] = useState(editBuild ? editBuild.name : "");
     const [buildNotes, setBuildNotes] = useState(editBuild ? (editBuild.notes || "") : "");
     const editId = editBuild ? editBuild.id : null;
     const generatedBudget = editBuild?.generatedBudget ?? null;
 
+    const { session } = useContext(AuthContext) || {};
+
     const [pickerOpen, setPickerOpen] = useState(null);
     const [availableParts, setAvailableParts] = useState([]);
     const [loading, setLoading] = useState(false);
-
+    const [saving, setSaving] = useState(false);
     const [ignoreCompatibility, setIgnoreCompatibility] = useState(false);
     
     const navigate = useNavigate();
+
+    function generateCompatiblity(parts = null) {
+        const _selectedParts = parts ?? selectedParts;
+        for (const [slotKey, selected] of Object.entries(_selectedParts)) {
+            _selectedParts[slotKey] = measurePartCompatibility(selected.part, _selectedParts);
+        }
+        return _selectedParts;
+    }
 
     function reinitializeParts(parts) {
         const result = {};
@@ -97,10 +129,11 @@ export default function CustomBuild() {
                 part: partReformatted
             };
         }
-        return result;
+        const withCompatibility = generateCompatiblity(result);
+        return withCompatibility;
     }
 
-    const fetchParts = async (slot, ignoreCompatibility) => {
+    const fetchParts = useCallback(async (slot, ignoreCompatibility) => {
         setLoading(true);
         setAvailableParts([]);
         try {
@@ -118,7 +151,7 @@ export default function CustomBuild() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedParts]);
 
     // Re-fetch parts when changing compatibility preference
     const handleCheckboxChange = async () => {
@@ -133,8 +166,8 @@ export default function CustomBuild() {
     // Fetch parts when picker opens
     const openPicker = useCallback(async (slot) => {
         setPickerOpen(slot.key);
-        await fetchParts(slot, ignoreCompatibility);        
-    }, [selectedParts, ignoreCompatibility]);
+        await fetchParts(slot, ignoreCompatibility);
+    }, [ignoreCompatibility, fetchParts]);
 
     const selectPart = (slotKey, part) => {
 
@@ -144,16 +177,11 @@ export default function CustomBuild() {
         } else {
             delete newSelectedParts[slotKey];
         }
-
-        // Refresh compatibility issues
-        for (const [slotKey, selected] of Object.entries(newSelectedParts)) {
-            newSelectedParts[slotKey] = measurePartCompatibility(selected.part, newSelectedParts)
-        }
+        newSelectedParts = generateCompatiblity(newSelectedParts);
 
         setSelectedParts(newSelectedParts);
         setPickerOpen(null);
     };
-    console.log(selectedParts);
 
     const totalPrice = Object.values(selectedParts).reduce((sum, selected) => sum + (selected.part.price || 0), 0);
     const partsCount = Object.keys(selectedParts).length;
@@ -166,7 +194,7 @@ export default function CustomBuild() {
         return () => window.removeEventListener('keydown', handleKey);
     }, []);
 
-    const handleSaveBuild = () => {
+    const handleSaveBuild = async () => {
         if (!buildName.trim()) {
             alert("Please provide a name for your build.");
             return;
@@ -175,27 +203,29 @@ export default function CustomBuild() {
             alert("Please add at least one part before saving.");
             return;
         }
-
-        const newBuild = {
-            id: editId || crypto.randomUUID(),
-            name: buildName,
-            notes: buildNotes.trim(),
-            totalPrice: totalPrice,
-            parts: selectedParts,
-            dateSaved: new Date().toLocaleDateString()
-        };
-
-        const existingBuilds = JSON.parse(localStorage.getItem("savedBuilds") || "[]"); 
-
-        let updatedBuilds;
-        if (editId) {
-            updatedBuilds = existingBuilds.map(b => b.id === editId ? newBuild : b);
-        } else {
-            updatedBuilds = [...existingBuilds, newBuild];
+        if (!session?.user) {
+            alert("You must be logged in to save a build.");
+            return;
         }
 
-        localStorage.setItem("savedBuilds", JSON.stringify(updatedBuilds));
-        navigate("/saved");
+        setSaving(true);
+        try {
+            await saveBuild({
+                buildId: editId,
+                userId: session.user.id,
+                name: buildName,
+                notes: buildNotes.trim(),
+                totalPrice,
+                generatedBudget,
+                selectedParts,
+            });
+            navigate("/saved");
+        } catch (err) {
+            console.error("Failed to save build:", err);
+            alert("Failed to save build. Please try again.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -261,9 +291,9 @@ export default function CustomBuild() {
                                 {selected && !selected?.compatible &&
                                     <p>
                                         {
-                                        selected?.issues?.filter(issue => issue.severity == 'error')?.length > 0
-                                            ? <span>This part has severe compatibility errors</span>
-                                            : <span>This part may not be compatible</span>
+                                        selected?.issues?.filter(issue => issue.severity === 'error')?.length > 0
+                                            ? <span>Severe compatibility errors</span>
+                                            : <span>May not be compatible</span>
                                         }
                                     </p>
                                 }
@@ -341,6 +371,15 @@ export default function CustomBuild() {
                     </div>
                 )}
 
+                {/* Compatibility Wheel */}
+                <div className="compatibility-wheel-wrapper">
+                    <div className="compatibility-wheel"></div>
+                    <div className="compatibility-text">
+                        <p className="compatibility-percentage">{(compatPercent*100).toFixed(2)}%</p>
+                        <p>compatible</p>
+                    </div>
+                </div>
+
                 <div className="totals-price">
                     <span className="totals-label">Estimated Total</span>
                     <span className="totals-value">${totalPrice.toFixed(2)}</span>
@@ -378,8 +417,8 @@ export default function CustomBuild() {
                         value={buildName}
                         onChange={(e) => setBuildName(e.target.value)}
                     />
-                    <button className="btn-save-build" onClick={handleSaveBuild}>
-                        Save Build
+                    <button className="btn-save-build" onClick={handleSaveBuild} disabled={saving}>
+                        {saving ? "Saving..." : "Save Build"}
                     </button>
                 </div>
             </div>
@@ -451,7 +490,7 @@ export default function CustomBuild() {
                                         </div>
                                         <div className="picker-item-compatibility">
                                             <PartIssue
-                                                issues={available.issues}
+                                                issues={available?.issues}
                                             />
                                         </div>
                                         <div className="picker-item-price">
