@@ -65,7 +65,6 @@ function formatPartSpecs(part, slotKey) {
 export default function CustomBuild() {
     const location = useLocation();
     const editBuild = location.state?.editBuild || null;
-    // console.log(editBuild);
 
     const [selectedParts, setSelectedParts] = useState(() => {
         return editBuild 
@@ -164,7 +163,6 @@ export default function CustomBuild() {
         setSelectedParts(newSelectedParts);
         setPickerOpen(null);
     };
-    // console.log(selectedParts);
 
     const totalPrice = Object.values(selectedParts).reduce((sum, selected) => sum + (selected.part.price || 0), 0);
     const partsCount = Object.keys(selectedParts).length;
