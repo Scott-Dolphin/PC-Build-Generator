@@ -1,6 +1,8 @@
 // e2e/system-integration.spec.js
 import { test, expect } from '@playwright/test';
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test.describe('System Integration Tests', () => {
 
 //   // Check for hidden alerts

@@ -12,7 +12,7 @@ test.describe('Custom Build Compatibility Logic', () => {
     await page.getByRole('button', { name: '+ Pick Motherboard', exact: true }).click();
     await page.locator('.picker-item').filter({ hasText: /Z790/i }).first().click();
 
-    const warningText = page.locator('.col-compatibility-msg').filter({ hasText: /severe compatibility errors/i });
+    const warningText = page.locator('.col-compatibility-msg').filter({ hasText: /severe compatibility errors/i }).first();
     await expect(warningText).toBeVisible();
 
     await page.getByRole('button', { name: '✎' }).nth(1).click(); 

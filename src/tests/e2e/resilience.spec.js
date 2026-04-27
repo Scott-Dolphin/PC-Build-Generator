@@ -1,6 +1,8 @@
 // e2e/resilience.spec.js
 import { test, expect } from '@playwright/test';
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test.describe('Resilience and Fault Injection', () => {
 
 //   // Check for hidden alerts
