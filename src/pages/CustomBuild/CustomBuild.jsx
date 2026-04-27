@@ -71,8 +71,26 @@ export default function CustomBuild() {
         return editBuild 
             ? reinitializeParts(editBuild.parts) 
             : {}
-    });    
-    console.log('selected parts:', selectedParts);
+    });  
+    
+    const [ compatPercent, setCompatPercent ] = useState(0);
+
+    // Calculate compatibility percentage: parts w/out errors (can have warnings) / total
+    useEffect(() => {
+        const compatibleParts = Object.values(selectedParts).filter(part =>
+            part.compatible || part.issues.filter(issue => issue.severity == "error").length == 0
+        );
+        const totalParts = Object.values(selectedParts).length;
+        const compatibilityPercentage = Number.isNaN(compatibleParts.length / totalParts)
+                ? 0
+                : compatibleParts.length / totalParts;
+        setCompatPercent(compatibilityPercentage);
+        
+        const compatibilityWheel = document.querySelector(".compatibility-wheel");
+        if (compatibilityWheel) {
+            compatibilityWheel.style.setProperty("--angle", `${compatibilityPercentage*360}deg`);
+        }
+    }, [selectedParts]);
 
     const [buildName, setBuildName] = useState(editBuild ? editBuild.name : "");
     const [buildNotes, setBuildNotes] = useState(editBuild ? (editBuild.notes || "") : "");
@@ -85,7 +103,6 @@ export default function CustomBuild() {
     const [availableParts, setAvailableParts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-
     const [ignoreCompatibility, setIgnoreCompatibility] = useState(false);
     
     const navigate = useNavigate();
@@ -117,7 +134,7 @@ export default function CustomBuild() {
         return withCompatibility;
     }
 
-    const fetchParts = async (slot, ignoreCompatibility) => {
+    const fetchParts = useCallback(async (slot, ignoreCompatibility) => {
         setLoading(true);
         setAvailableParts([]);
         try {
@@ -135,7 +152,7 @@ export default function CustomBuild() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedParts]);
 
     // Re-fetch parts when changing compatibility preference
     const handleCheckboxChange = async () => {
@@ -150,8 +167,8 @@ export default function CustomBuild() {
     // Fetch parts when picker opens
     const openPicker = useCallback(async (slot) => {
         setPickerOpen(slot.key);
-        await fetchParts(slot, ignoreCompatibility);        
-    }, [selectedParts, ignoreCompatibility]);
+        await fetchParts(slot, ignoreCompatibility);
+    }, [ignoreCompatibility, fetchParts]);
 
     const selectPart = (slotKey, part) => {
 
@@ -166,7 +183,6 @@ export default function CustomBuild() {
         setSelectedParts(newSelectedParts);
         setPickerOpen(null);
     };
-    // console.log(selectedParts);
 
     const totalPrice = Object.values(selectedParts).reduce((sum, selected) => sum + (selected.part.price || 0), 0);
     const partsCount = Object.keys(selectedParts).length;
@@ -277,8 +293,8 @@ export default function CustomBuild() {
                                     <p>
                                         {
                                         selected?.issues?.filter(issue => issue.severity === 'error')?.length > 0
-                                            ? <span>This part has severe compatibility errors</span>
-                                            : <span>This part may not be compatible</span>
+                                            ? <span>Severe compatibility errors</span>
+                                            : <span>May not be compatible</span>
                                         }
                                     </p>
                                 }
@@ -355,6 +371,15 @@ export default function CustomBuild() {
                         </span>
                     </div>
                 )}
+
+                {/* Compatibility Wheel */}
+                <div className="compatibility-wheel-wrapper">
+                    <div className="compatibility-wheel"></div>
+                    <div className="compatibility-text">
+                        <p className="compatibility-percentage">{(compatPercent*100).toFixed(2)}%</p>
+                        <p>compatible</p>
+                    </div>
+                </div>
 
                 <div className="totals-price">
                     <span className="totals-label">Estimated Total</span>
