@@ -1,6 +1,6 @@
 # PC Build Generator
 
-https://pc-bg.vercel.app/
+pc-build-generator-eight.vercel.app/
 
 ## How to run locally
 
