@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { findParts } from "../../domain/partsApi";
-import { partMap } from "../../domain/partMap";
 import { measurePartCompatibility } from "../../domain/partsApi";
 import { AuthContext } from "../../context/AuthContext";
 import { saveBuild } from "../../lib/buildsApi";
