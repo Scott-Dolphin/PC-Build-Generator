@@ -194,17 +194,6 @@ export default function GenerateBuild() {
                                                 ${total.toLocaleString()}
                                             </span>
                                         </div>
-                                        <button
-                                            className="btn-use-build"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                alert(
-                                                    `Build "${build.name}" selected! (Integration coming soon)`
-                                                );
-                                            }}
-                                        >
-                                            Use This Build
-                                        </button>
                                     </div>
                                 )}
 
