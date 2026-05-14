@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { findParts } from "../../domain/partsApi";
+import { partMap } from "../../domain/partMap";
 import { measurePartCompatibility } from "../../domain/partsApi";
 import { AuthContext } from "../../context/AuthContext";
 import { saveBuild } from "../../lib/buildsApi";
@@ -66,12 +67,12 @@ export default function CustomBuild() {
     const editBuild = location.state?.editBuild || null;
 
     const [selectedParts, setSelectedParts] = useState(() => {
-        return editBuild
-            ? reinitializeParts(editBuild.parts)
+        return editBuild 
+            ? reinitializeParts(editBuild.parts) 
             : {}
-    });
-
-    const [compatPercent, setCompatPercent] = useState(0);
+    });  
+    
+    const [ compatPercent, setCompatPercent ] = useState(0);
 
     // Calculate compatibility percentage: parts w/out errors (can have warnings) / total
     useEffect(() => {
@@ -80,13 +81,13 @@ export default function CustomBuild() {
         );
         const totalParts = Object.values(selectedParts).length;
         const compatibilityPercentage = Number.isNaN(compatibleParts.length / totalParts)
-            ? 0
-            : compatibleParts.length / totalParts;
+                ? 0
+                : compatibleParts.length / totalParts;
         setCompatPercent(compatibilityPercentage);
-
+        
         const compatibilityWheel = document.querySelector(".compatibility-wheel");
         if (compatibilityWheel) {
-            compatibilityWheel.style.setProperty("--angle", `${compatibilityPercentage * 360}deg`);
+            compatibilityWheel.style.setProperty("--angle", `${compatibilityPercentage*360}deg`);
         }
     }, [selectedParts]);
 
@@ -102,7 +103,7 @@ export default function CustomBuild() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [ignoreCompatibility, setIgnoreCompatibility] = useState(false);
-
+    
     const navigate = useNavigate();
 
     function generateCompatiblity(parts = null) {
@@ -116,9 +117,16 @@ export default function CustomBuild() {
     function reinitializeParts(parts) {
         const result = {};
         for (const [key, val] of Object.entries(parts)) {
+            const foundIndex = COMPONENT_SLOTS.findIndex(slot => slot.key == key);
+            const partKey = COMPONENT_SLOTS[foundIndex].partKey;
+            const PartClass = partMap[partKey].class;
+
+            const attrs = {...val.part}
+            const partReformatted = new PartClass({attrs, ...val.part});
+
             result[key] = {
                 ...val,
-                part: val.part
+                part: partReformatted
             };
         }
         const withCompatibility = generateCompatiblity(result);
@@ -130,8 +138,8 @@ export default function CustomBuild() {
         setAvailableParts([]);
         try {
             const parts = await findParts({
-                partType: slot.partKey,
-                selectedParts,
+                partType: slot.partKey, 
+                selectedParts, 
                 ignoreCompatibility,
                 limit: 100
             });
@@ -163,7 +171,7 @@ export default function CustomBuild() {
 
     const selectPart = (slotKey, part) => {
 
-        let newSelectedParts = { ...selectedParts }
+        let newSelectedParts = {...selectedParts}
         if (part != null) {
             newSelectedParts[slotKey] = { part }
         } else {
@@ -283,9 +291,9 @@ export default function CustomBuild() {
                                 {selected && !selected?.compatible &&
                                     <p>
                                         {
-                                            selected?.issues?.filter(issue => issue.severity === 'error')?.length > 0
-                                                ? <span>Severe compatibility errors</span>
-                                                : <span>May not be compatible</span>
+                                        selected?.issues?.filter(issue => issue.severity === 'error')?.length > 0
+                                            ? <span>Severe compatibility errors</span>
+                                            : <span>May not be compatible</span>
                                         }
                                     </p>
                                 }
@@ -294,7 +302,7 @@ export default function CustomBuild() {
                             <div className="col-compatibility">
                                 <span>
                                     <PartIssue
-                                        issues={selected?.issues || []}
+                                        issues={ selected?.issues || [] }
                                     ></PartIssue>
                                 </span>
                             </div>
@@ -352,8 +360,8 @@ export default function CustomBuild() {
                                     background: totalPrice > generatedBudget
                                         ? '#ff5555'
                                         : totalPrice / generatedBudget > 0.9
-                                            ? '#f0a500'
-                                            : 'var(--primary-purple)',
+                                        ? '#f0a500'
+                                        : 'var(--primary-purple)',
                                 }}
                             />
                         </div>
@@ -367,7 +375,7 @@ export default function CustomBuild() {
                 <div className="compatibility-wheel-wrapper">
                     <div className="compatibility-wheel"></div>
                     <div className="compatibility-text">
-                        <p className="compatibility-percentage">{(compatPercent * 100).toFixed(2)}%</p>
+                        <p className="compatibility-percentage">{(compatPercent*100).toFixed(2)}%</p>
                         <p>compatible</p>
                     </div>
                 </div>
@@ -396,7 +404,7 @@ export default function CustomBuild() {
 
             <div className="save-build-section">
                 <p className="save-build-warning">
-                    {Object.values(selectedParts).filter(selected => selected.issues?.length > 0).length > 0 &&
+                    { Object.values(selectedParts).filter(selected => selected.issues?.length > 0).length > 0 &&
                         '*WARNING: Not all parts in this build may be compatible'
                     }
                 </p>
@@ -432,7 +440,7 @@ export default function CustomBuild() {
                                         id="ignore-compatibility"
                                         type="checkbox"
                                         onChange={handleCheckboxChange}
-                                        checked={ignoreCompatibility}
+                                        checked = {ignoreCompatibility}
                                     />
                                     <label htmlFor="ignore-compatibility">Ignore Compatibility</label>
                                 </div>
