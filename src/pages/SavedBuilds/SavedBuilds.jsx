@@ -66,7 +66,7 @@ export default function SavedBuilds() {
     };
 
     const getTotalPrice = (parts) =>
-        Object.values(parts).reduce((sum, p) => sum + (p.price || 0), 0);
+        Object.values(parts).reduce((sum, p) => sum + (p.part?.price || 0), 0);
 
     return (
         <div className="saved-builds-page">
